@@ -3,12 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 func cleanText(input string) string {
@@ -196,11 +198,17 @@ func getDinoDataByName(res http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
 	http.HandleFunc("/getAllDinoList", getAllDinoList)
 	http.HandleFunc("/getDinoDataByName", getDinoDataByName)
 	http.HandleFunc("/getAllDinoListWithDetails", getAllDinoListWithDetails)
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
 
 	fmt.Println("Server is running on port 8080")
 }
