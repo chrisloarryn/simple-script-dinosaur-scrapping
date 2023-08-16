@@ -22,32 +22,48 @@ func cleanText(input string) string {
 	}
 	return input
 }
-func getOnlyDinoList() ([]map[string]string, error) {
-	dinoList := []map[string]string{}
-
+func getOnlyDinoListConcurrent() ([]map[string]string, error) {
 	data, err := get("/name/name-az-all.html")
 	if err != nil {
 		log.Println(err)
-		return dinoList, err
+		return nil, err
 	}
 
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(data))
 	if err != nil {
 		log.Println(err)
-		return dinoList, err
+		return nil, err
 	}
 
+	dinoChan := make(chan map[string]string)
+	var wg sync.WaitGroup
+
 	doc.Find(".dinosaurfilter--dinosaur").Each(func(index int, sel *goquery.Selection) {
-		name := cleanText(sel.Find("a .dinosaurfilter--name-unhyphenated").Text())
-		link, _ := sel.Find("a").Attr("href")
-		dinoList = append(dinoList, map[string]string{"name": name, "link": link})
+		wg.Add(1)
+		go func(s *goquery.Selection) {
+			defer wg.Done()
+			name := cleanText(s.Find("a .dinosaurfilter--name-unhyphenated").Text())
+			link, _ := s.Find("a").Attr("href")
+			dinoData := map[string]string{"name": name, "link": link}
+			dinoChan <- dinoData
+		}(sel)
 	})
+
+	go func() {
+		wg.Wait()
+		close(dinoChan)
+	}()
+
+	dinoList := []map[string]string{}
+	for dinoData := range dinoChan {
+		dinoList = append(dinoList, dinoData)
+	}
 
 	return dinoList, nil
 }
 
 func getAllDinoList(res http.ResponseWriter, req *http.Request) {
-	dinoList, err := getOnlyDinoList()
+	dinoList, err := getOnlyDinoListConcurrent()
 	if err != nil {
 		log.Println(err)
 		http.Error(res, "Internal Server Error", http.StatusInternalServerError)
@@ -73,7 +89,7 @@ func getAllDinoList(res http.ResponseWriter, req *http.Request) {
 
 func getAllDinoListWithDetails(res http.ResponseWriter, req *http.Request) {
 	var noDataDinosaurs int16
-	dinoList, err := getOnlyDinoList()
+	dinoList, err := getOnlyDinoListConcurrent()
 	if err != nil {
 		log.Println(err)
 		http.Error(res, "Internal Server Error", http.StatusInternalServerError)
