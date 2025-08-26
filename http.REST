@@ -1,0 +1,26 @@
+# Dino API HTTP tests (JetBrains HTTP Client)
+# Start the server first: go run . (PORT defaults to 8080)
+
+@host = localhost
+@port = 8080
+@name = Tyrannosaurus
+
+### Get all dinosaur names (concurrent list)
+GET http://{{host}}:{{port}}/getAllDinoList
+Accept: application/json
+
+### Get all dinosaur details (may take longer)
+GET http://{{host}}:{{port}}/getAllDinoListWithDetails
+Accept: application/json
+
+### Get dinosaur data by name (uses query param `name`)
+GET http://{{host}}:{{port}}/getDinoDataByName?name={{name}}
+Accept: application/json
+
+### Example: specific name (Triceratops)
+GET http://{{host}}:{{port}}/getDinoDataByName?name=Triceratops
+Accept: application/json
+
+### Example: unknown name (to see fallback behavior)
+GET http://{{host}}:{{port}}/getDinoDataByName?name=Unknownosaurus
+Accept: application/json
